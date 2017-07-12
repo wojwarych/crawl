@@ -3,7 +3,8 @@ from wrap_crawl import SiteInfo, TheCrawl
 
 if __name__ == "__main__":
 
-	#Set the crawler - starting point, robots.txt, file to write down to it, headers
+	#Set the crawler - starting point, robots.txt
+	#file to write down to it, headers
 	data = SiteInfo("robot_parser.txt")
 	data.create_table("dane")
 
@@ -36,9 +37,12 @@ if __name__ == "__main__":
 			
 			crawler.add_by_regex("Producent: (.+?) Kod", number, ";")
 			crawler.add_by_regex("Długość \(cm\): (.+?) Waga", number, ";")
-			crawler.add_by_regex("Waga \(g\): (.+?) Powierzchnia", number, ";")
-			crawler.add_by_regex("Powierzchnia główki \(cm2\): (.+?) Balans", number, ";")
-			crawler.add_by_regex("Balans \(mm\): (.+?) Sztywność", number, ";")
+			crawler.add_by_regex(
+				"Waga \(g\): (.+?) Powierzchnia", number, ";")
+			crawler.add_by_regex(
+				"Powierzchnia główki \(cm2\): (.+?) Balans", number, ";")
+			crawler.add_by_regex(
+				"Balans \(mm\): (.+?) Sztywność", number, ";")
 			crawler.add_by_regex("Sztywność \(RA\): (.+?) Układ", number, ";")
 			crawler.add_by_regex("Układ strun: (.+?) Profil", number, ";")
 			crawler.add_by_regex("Profil ramy \(mm\): (.+?) ", number, ";")
