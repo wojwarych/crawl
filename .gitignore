@@ -2,3 +2,4 @@
 *.csv
 *.sublime-project
 *.sublime-workspace
+/env
