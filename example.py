@@ -56,6 +56,7 @@ if __name__ == "__main__":
 
 			data.write_table(crawler.product_spec[index])
 		
+		print("Test of cloning git")
 		print(crawler.product_spec)
 
 		iter_page +=1
