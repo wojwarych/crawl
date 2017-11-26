@@ -1,2 +1,4 @@
 *.pyc
 *.csv
+*.sublime-project
+*.sublime-workspace

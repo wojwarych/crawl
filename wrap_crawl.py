@@ -53,10 +53,10 @@ class SiteInfo:
 		
 		if self.check_robots.can_fetch(robot_name, url) == True:
 			
-			return(True)
+			return True
 		else:
 			
-			return(False)
+			return False
 
 #######################################################################################################################
 
@@ -182,3 +182,89 @@ class TheCrawl:
 			string = string.get_text(" ", strip = True)
 			string = string.replace(clean, replacer)
 			self.reformatted.append(string)
+
+
+##############################################################################
+
+def requests_get(url):
+
+	link = rs.get(url=url)
+	return link.content
+
+
+def extract_link(link, parser='html.parser'):
+
+	the_soup = bsoup(link, parser)
+	return the_soup
+
+
+def find_links(
+				soup,
+				type_class='next',
+				cont_list=[],
+				flag=True):
+
+	
+	if soup.find_all('li', class_=type_class):
+		
+		for link in soup.find_all('li', class_=type_class):
+			href = link.a.get('href')
+			cont_list.append(href)
+			return cont_list, flag
+			
+	else:
+			flag = False
+			return cont_list, flag
+
+
+def get_links_from_links(
+						soup,
+						type_class='product',
+						links=[]):
+
+	if soup.find_all('a', class_=type_class):
+
+		for link in soup.find_all('a', class_=type_class):
+			href = link.get('href')
+			#print(href)
+			links.append(href)
+			print(links)
+			return links
+
+
+
+if __name__ == '__main__':
+
+
+	whole_pagination = requests_get(
+		'https://strefatenisa.com.pl/rakiety-tenisowe/rakiety-seniorskie/page=1')
+	soup = extract_link(whole_pagination)
+	content, flag = find_links(soup, 'next')
+
+	index = 0
+	while flag == True:
+
+		next_link = requests_get(content[index])
+		next_soup = extract_link(next_link)
+		content, flag = find_links(next_soup)
+		index += 1
+	
+	soups = []
+	for cnt in content:
+
+		products_link = requests_get(cnt)
+		soups.append(products_link)
+
+	cnts = []
+	for s in soups:
+		cnt = extract_link(s)
+		cnts.append(cnt)
+
+	raquets = []
+	while cnts:
+
+		link = cnts.pop()
+		raquets = get_links_from_links(soup=link, links=raquets)
+
+	print(raquets)
+	print(len(raquets))
