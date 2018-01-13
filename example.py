@@ -6,7 +6,7 @@ if __name__ == "__main__":
 	#Set the crawler - starting point, robots.txt
 	#file to write down to it, headers
 	data = SiteInfo("robot_parser.txt")
-	data.create_table("dane")
+	data.create_table("data")
 
 	url = data.data_from_txt.readline()
 	headers = data.data_from_txt.readline()
@@ -29,6 +29,7 @@ if __name__ == "__main__":
 		#Get the specific content of a page - another links
 		crawler.get_link('href', 'a', class_ = 'product')
 		crawler.get_content(data)
+		
 		crawler.get_details('table', class_ = 'productSpecification')
 		crawler.reformat("Dowiedz się więcej więcej ", "")
 		crawler.insert_to_reformat(" zł", "", 1, 'div', class_ = 'newPrice')
