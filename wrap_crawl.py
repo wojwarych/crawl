@@ -1,8 +1,9 @@
+from datetime import datetime as count
+import re
+import urllib.robotparser as robotparser
+
 import requests as rs
 from bs4 import BeautifulSoup as bsoup
-import re
-from datetime import datetime as count
-import urllib.robotparser as robotparser
 
 
 
@@ -60,50 +61,119 @@ class SiteInfo:
 
 #######################################################################################################################
 
-class TheCrawl:
+class TheCrawl(object):
 
 
 	the_agent = {
 		"User-Agent" : "My_Crawler/0.1 (Windows NT 6.1)",
-		"Contact" : "woj.warych@gmail.com"}
-	the_parser = 'html.parser'
+		"Contact" : "woj.warych@gmail.com",
+		"Connection": "keep-alive"}
+	the_parser = 'xml'
 
 
 	def __init__(self, url):
 		
+		self.paginated_items = []
+		self.paginated_items.append(url)
 
-		self.links = []
-		self.detail_soup = []
-		self.container = []
-		self.reformatted = []
-		self.text = ""
-		self.text_insert = []
-		self.product_spec = []
-		self.url = url
-		crawl = rs.request('GET', url = self.url, headers = self.the_agent)
-		self.soup = bsoup(crawl.content, self.the_parser)
+		self.get_tree(url)
 
 
 	def show_tree(self):
 
-		
 		'''Shows tree of the link'''
-
-		print(self.soup.prettify())
-
-
-	def get_link(self, key, *args, **kwargs):
+		print(self.page_tree.prettify())
 
 
-		'''Gets the data from selected link'''
+	def get_tree(self, url):
 
-		for link in self.soup.find_all(*args, **kwargs):
+
+		print(url)
+		url_content = (
+			rs.request('GET', url=url, headers=self.the_agent).content)
+		self.page_tree = bsoup(url_content, self.the_parser)
+
+
+	def get_links(self, *args, **kwargs):
+
+		'''Get all links of all raquets on the page'''
+
+		requested_links = self.page_tree.find_all(*args, **kwargs)
+		return requested_links
+
+
+	def is_next_page(self):
+
+		link = self.page_tree.find(class_="pagination").li
+
+		if link.a.get('title') == "Następna Strona":
+			return True
+
+		else:
+
+			for l in link.next_siblings:
 			
-			link = link.get(key)
-			self.links.append(link)
+				if l.__class__.__name__ == "NavigableString" or l.a.get('title') == "Poprzednia Strona":
+					pass
+				
+				else:
+					if l.a.get('title') == "Następna Strona":
+						return True
+					
+					else:
+						return False
 
-	def get_content(self, SiteInfo):
+		
+		'''for l in link.next_siblings:
+			
+			print(l)
+			if l.__class__.__name__ == "NavigableString" or l.a.get('title') == "Poprzednia Strona":
+				pass
+			
+			else:
+				if l.a.get('title') == "Następna Strona":
+					print(l.a.get('href'))
+					return True
+				
+				else:
+					return False'''
 
+		#if link.get('title') == "Następna Strona":
+		#	return True
+		#else:
+		#	return False
+
+
+	def get_link_next(self):
+
+		if self.is_next_page():
+
+			link = self.page_tree.find(class_='pagination').li
+
+			if link.a.get('href'):
+
+				self.paginated_items.append(link.a.get('href'))
+
+			else:
+
+				for l in link.next_siblings:
+
+					if l.__class__.__name__ == 'NavigableString' or l.a.get('href') in self.paginated_items:
+						pass
+					else:
+						self.paginated_items.append(l.a.get('href'))
+
+			return self.paginated_items
+		
+		else:
+			return self.is_next_page()
+		
+
+	def set_link_next(self):
+
+		self.get_tree(self.paginated_items[-1])
+
+	"""def get_content(self, SiteInfo):
 
 		'''Gets the soup from selected link'''
 
@@ -184,4 +254,17 @@ class TheCrawl:
 			string = self.container[body]
 			string = string.get_text(" ", strip = True)
 			string = string.replace(clean, replacer)
-			self.reformatted.append(string)
+			self.reformatted.append(string)"""
+
+
+if __name__ == "__main__":
+
+
+	start_url = 'https://strefatenisa.com.pl/rakiety-tenisowe/rakiety-seniorskie/page=1'
+	tennis_data = TheCrawl(start_url)
+
+	links = tennis_data.get_link_next()
+
+	tennis_data.set_link_next()
+
+	tennis_data.get_link_next()
