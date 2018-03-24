@@ -1,270 +1,217 @@
+import csv
 from datetime import datetime as count
 import re
 import urllib.robotparser as robotparser
+import pdb
+
 
 import requests as rs
 from bs4 import BeautifulSoup as bsoup
 
 
-
+# TODO: refactor SiteInfo class -> move robot methods to TheCrawl object
+# Make methods which specify usage of csv module
 class SiteInfo:
 
 
-	the_date = count.now()
+    the_date = count.now()
 
 
-	def __init__(self, filename):
-		
-		self.txt_file = filename
-		self.data_from_txt = open(self.txt_file, mode = 'r')
+    def __init__(self, filename):
+        
+        self.txt_file = filename
+        self.data_from_txt = open(self.txt_file, mode = 'r')
 
-	def create_table(self, name):
-		
-		self.table_name = (
-			name
-			+ '{}'.format(self.the_date.strftime("%Y-%m"))
-			+ ".csv")
-		self.data_table = open(self.table_name, mode = 'w')
-
-
-	def write_table(self, found_data):
-		
-		self.data_table.write(found_data)
+    def create_table(self, name):
+        
+        self.table_name = (
+            name
+            + '{}'.format(self.the_date.strftime("%Y-%m"))
+            + ".csv")
+        self.data_table = open(self.table_name, mode = 'w')
 
 
-	@staticmethod
-	def check_url(url):
-		
-		print("The page where crawler starts is: \n" + url + "\n")
+    def write_table(self, found_data):
+        
+        self.data_table.write(found_data)
 
 
-	def check_robots(self, robots_txt):
-		
-		self.check_robots = robotparser.RobotFileParser()
-		self.check_robots.set_url(robots_txt)
-		self.check_robots.read()
-
-	
-	def close_file(self):
-		
-		self.data_table.close()
+    @staticmethod
+    def check_url(url):
+        
+        print("The page where crawler starts is: \n" + url + "\n")
 
 
-	def fetch_robot(self, robot_name, url):
-		
-		if self.check_robots.can_fetch(robot_name, url) == True:
-			
-			return True
-		else:
-			
-			return False
+    def check_robots(self, robots_txt):
+        
+        self.check_robots = robotparser.RobotFileParser()
+        self.check_robots.set_url(robots_txt)
+        self.check_robots.read()
 
-#######################################################################################################################
+    
+    def close_file(self):
+        
+        self.data_table.close()
+
+
+    def fetch_robot(self, robot_name, url):
+        
+        if self.check_robots.can_fetch(robot_name, url) == True:
+            
+            return True
+        else:
+            
+            return False
+
+
 
 class TheCrawl(object):
 
 
-	the_agent = {
-		"User-Agent" : "My_Crawler/0.1 (Windows NT 6.1)",
-		"Contact" : "woj.warych@gmail.com",
-		"Connection": "keep-alive"}
-	the_parser = 'xml'
+    the_agent = {
+        "User-Agent" : "My_Crawler/0.1 (Windows NT 6.1)",
+        "Contact" : "woj.warych@gmail.com",
+        "Connection": "keep-alive"}
+    the_parser = 'lxml'
 
 
-	def __init__(self, url):
-		
-		self.paginated_items = []
-		self.paginated_items.append(url)
+    def __init__(self, url, specs):
+        
 
-		self.get_tree(url)
+        self.link_pages = []
+        self.link_pages.append(url)
+        self.racquet_links = []
+        self.requested_data = {spec: None for spec in specs}
+        self.gathered_data = []
+        self.get_tree(url)
 
 
-	def show_tree(self):
+    def show_tree(self):
 
-		'''Shows tree of the link'''
-		print(self.page_tree.prettify())
 
+        '''Shows whole HTML tree of link'''
+        print(self.page_tree.prettify())
 
-	def get_tree(self, url):
 
+    def get_tree(self, url):
 
-		print(url)
-		url_content = (
-			rs.request('GET', url=url, headers=self.the_agent).content)
-		self.page_tree = bsoup(url_content, self.the_parser)
 
+        '''Create tree to parse through it''' 
+        url_content = (
+            rs.request('GET', url=url, headers=self.the_agent).content)
+        self.page_tree = bsoup(url_content, self.the_parser)
 
-	def get_links(self, *args, **kwargs):
 
-		'''Get all links of all raquets on the page'''
+    def get_links(self, link, *args, **kwargs):
 
-		requested_links = self.page_tree.find_all(*args, **kwargs)
-		return requested_links
 
+        '''Get all links of all raquets on the page'''
+        return link.find_all(*args, **kwargs)
 
-	def is_next_page(self):
 
-		link = self.page_tree.find(class_="pagination").li
+    def is_next_page(self):
 
-		if link.a.get('title') == "Następna Strona":
-			return True
 
-		else:
+        '''Check if current self.page_tree has its successor'''
+        link = self.page_tree.find(class_="pagination").li
+        if link.a.get('title') == "Następna Strona":
+            return True
 
-			for l in link.next_siblings:
-			
-				if l.__class__.__name__ == "NavigableString" or l.a.get('title') == "Poprzednia Strona":
-					pass
-				
-				else:
-					if l.a.get('title') == "Następna Strona":
-						return True
-					
-					else:
-						return False
+        else:
+            for l in link.next_siblings:
+                if l.__class__.__name__ == "NavigableString" or l.a.get('title') == "Poprzednia Strona":
+                    pass
+                else:
+                    if l.a.get('title') == "Następna Strona":
+                        return True
+                    return False
 
-		
-		'''for l in link.next_siblings:
-			
-			print(l)
-			if l.__class__.__name__ == "NavigableString" or l.a.get('title') == "Poprzednia Strona":
-				pass
-			
-			else:
-				if l.a.get('title') == "Następna Strona":
-					print(l.a.get('href'))
-					return True
-				
-				else:
-					return False'''
 
-		#if link.get('title') == "Następna Strona":
-		#	return True
-		#else:
-		#	return False
+    def get_link_next(self):
 
 
-	def get_link_next(self):
+        '''Catches link for page which is next after current self.page_tree'''
+        if self.is_next_page():
+            link = self.page_tree.find(class_='pagination').li
 
-		if self.is_next_page():
+            if link.a.get('href') not in self.link_pages:
+                self.link_pages.append(link.a.get('href'))
+            else:
+                iter_link_sibs = link.next_siblings
+                for l in iter_link_sibs:
+                    if l.__class__.__name__ == 'NavigableString' or l.a.get('href') in self.link_pages:
+                        pass
+                    else:
+                        self.link_pages.append(l.a.get('href'))
 
-			link = self.page_tree.find(class_='pagination').li
+            return self.link_pages
+        
+        else:
+            return self.is_next_page()
+        
 
-			if link.a.get('href'):
+    def set_link_next(self):
 
-				self.paginated_items.append(link.a.get('href'))
 
-			else:
+        '''Sets new self.page_tree which is latest catched url from get_link_next method'''
+        self.get_tree(self.link_pages[-1])
 
-				for l in link.next_siblings:
 
-					if l.__class__.__name__ == 'NavigableString' or l.a.get('href') in self.paginated_items:
-						pass
-					else:
-						self.paginated_items.append(l.a.get('href'))
+    def get_racquet_hrefs(self, racquets_tags):
 
-			return self.paginated_items
-		
-		else:
-			return self.is_next_page()
-		
 
-	def set_link_next(self):
+        '''Get proper urls from html tags from list w tags'''
+        racqs_hrefs = self.flat_list(racquets_tags)
+        self.racquet_links = [tag.get('href') for tag in racqs_hrefs]
 
-		self.get_tree(self.paginated_items[-1])
 
-	"""def get_content(self, SiteInfo):
+    def flat_list(self, racquets_tags):
 
-		'''Gets the soup from selected link'''
 
-		for cont, _ in enumerate(self.links):
-			
-			next_link = self.links[cont]
+        '''Collected anchor tags from pages are list of lists (1 list - one page)
+        Flatten list for further ease of use'''
+        racquets_tags = [tag for page_tag in racquets_tags for tag in page_tag]
+        return racquets_tags
 
-			if SiteInfo.check_robots.can_fetch('*', next_link) == True:
 
-				new_link = rs.get(url = next_link)
-				self.detail_soup.append(bsoup(new_link.content,
-											  self.the_parser))
-			else:
-				pass
+    def get_price(self, *args, **kwargs):
 
 
-	def get_details(self, *args, **kwargs):
+        return self.page_tree.find(*args, **kwargs).get_text().strip()
 
 
-		'''Gets detailed content from the link'''
+    def get_content(self, properties):
 
-		for det, _ in enumerate(self.detail_soup):
 
-			parse_text = self.detail_soup[det]
+        '''Gets the content from the table specs in the racquet link'''
+        table_tag_list = self.get_table_tags()
 
-			for cont in parse_text.find_all(*args, **kwargs):
-				self.container.append(cont)
-				
+        for tag in table_tag_list:
+            stripped_tag = tag.get_text().strip()
+            if stripped_tag in properties.keys():
+                properties[stripped_tag] = (
+                    tag.next_sibling.get_text().strip())
 
-	def insert_to_reformat(self, clean, replacer, position, *args, **kwargs):
+        self._check_for_nas(properties)
 
 
-		'''Insert the data to self.container if forgotten'''
+    def _check_for_nas(self, data):
 
-		for det, _ in enumerate(self.detail_soup):
 
-			parse_text = self.detail_soup[det]
+        for key in data.keys():
+            if data[key] is None:
+                data[key] = 'NA'
 
-			for cont in parse_text.find_all(*args, **kwargs):
 
-				cont = cont.get_text(" ", strip = True)
-				cont = cont.replace(clean, replacer)
-				self.text_insert.append(cont)
+    def set_gathered_data(self, data, price):
 
-		for iteration, _ in enumerate(self.text_insert):
 
-			self.reformatted.insert(position, self.text_insert[iteration])
-			self.reformatted[position - 1:position + 1] = (
-				[' '.join(self.reformatted[position - 1:position + 1])])
-			position += 1
+        data = list(data.values())
+        data.append(price)
+        self.gathered_data.append(data)
 
 
-	def add_by_regex(self, expression, num, delimiter):
+    def get_table_tags(self):
 
-		'''Put to string text from self.reformatted list or NAs if not found'''
 
-		if re.search(expression, self.reformatted[num]):
-			
-			self.text += (
-				(re.search(expression, self.reformatted[num]).group(1))
-				+ delimiter)
-		else:
-			
-			self.text += ("NA" + delimiter)
-
-
-	def clear_text(self):
-
-		self.text = ""
-	
-
-	def reformat(self, clean, replacer):
-
-
-		'''Reformats html body to text'''
-
-		for body, _ in enumerate(self.container):
-			string = self.container[body]
-			string = string.get_text(" ", strip = True)
-			string = string.replace(clean, replacer)
-			self.reformatted.append(string)"""
-
-
-if __name__ == "__main__":
-
-
-	start_url = 'https://strefatenisa.com.pl/rakiety-tenisowe/rakiety-seniorskie/page=1'
-	tennis_data = TheCrawl(start_url)
-
-	links = tennis_data.get_link_next()
-
-	tennis_data.set_link_next()
-
-	tennis_data.get_link_next()
+        return self.page_tree.table.find_all('td')
